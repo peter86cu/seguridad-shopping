@@ -60,9 +60,9 @@ public class ShoppingController {
 	@ResponseStatus(HttpStatus.CREATED)
 	public ResponseEntity<String> guardarUsuario(@RequestBody String datos, HttpServletRequest request)
 			throws Exception {
-		String token = request.getHeader(ENCABEZADO);
+		//String token = request.getHeader(ENCABEZADO);
 
-		return service.crearUsuario(datos,token);
+		return service.crearUsuario(datos);
 
 	}
 
@@ -106,6 +106,16 @@ public class ShoppingController {
 	public ResponseEntity<String> eliminarDireUsuarioPorId(@RequestParam("id") int id, HttpServletRequest request) {
 		String token = request.getHeader(ENCABEZADO);
 		return service.eliminarDreccionUsuarioPorId(id, token);
+
+	}
+	
+	@GetMapping(value = "shopping/departamentos/buscar", produces = MediaType.APPLICATION_JSON_VALUE)
+	@CrossOrigin(origins = "*", methods = { RequestMethod.GET, RequestMethod.POST })
+	@ResponseStatus(HttpStatus.CREATED)
+	public ResponseEntity<String> obtenerDireccionPorUsuario(@RequestParam("pais") int id, HttpServletRequest request)
+			throws Exception {
+
+		return service.obtenerListadoDpto(id);
 
 	}
 

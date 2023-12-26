@@ -2,8 +2,9 @@ package com.ayalait.seguridad.service;
 
 import org.springframework.http.ResponseEntity;
 
+
 public interface ShoppingService {
-	ResponseEntity<String> crearUsuario(String usuario, String token);
+	ResponseEntity<String> crearUsuario(String usuario);
 
 	ResponseEntity<String> buscarUsuario(String user, String pwd);
 
@@ -19,6 +20,14 @@ public interface ShoppingService {
 
 	ResponseEntity<String> recuperarDreccionUsuarioPorId(String idUsuario, String token);
 
-	ResponseEntity<String> eliminarDreccionUsuarioPorId(int id, String token);
+	ResponseEntity<String> eliminarDreccionUsuarioPorId(int id, String token);	
+	
+	ResponseEntity<String> confirmarRegistroUsuario( String token);
+	
+	ResponseEntity<String> actualizarEstadoConfirmacionRegistroUser( String iduser, int estado);
+
+	ResponseEntity<String> obtenrUsuarioPorToken( String token);
+	
+	ResponseEntity<String> obtenerListadoDpto(int pais);
 
 }

@@ -47,6 +47,24 @@ public class AuthController {
 		
 	}
 	
+	
+	@PostMapping("confirmar/user")
+	@CrossOrigin(origins = "*", methods = { RequestMethod.GET, RequestMethod.POST })
+	@ResponseStatus(HttpStatus.CREATED)
+	public ResponseEntity<String> confirmarRegistroUser(HttpServletRequest request) throws BadCredentialsException {
+		String token = request.getHeader(ENCABEZADO);
+		return service.confirmarRegistroUsuario(token);
+		
+	}
+	
+	@PostMapping("obtener/user-token")
+	@CrossOrigin(origins = "*", methods = { RequestMethod.GET, RequestMethod.POST })
+	@ResponseStatus(HttpStatus.CREATED)
+	public ResponseEntity<String> obtenerUserPorToken(HttpServletRequest request) throws BadCredentialsException {
+		String token = request.getHeader(ENCABEZADO);
+		return service.obtenrUsuarioPorToken(token);
+		
+	}
 
 	
 	@PostMapping("login/validar")

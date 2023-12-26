@@ -3,6 +3,7 @@ package com.ayalait.seguridad.dao;
 import java.util.List;
 
 import com.ayalait.seguridad.modelo.DireccionUsuario;
+import com.ayalait.seguridad.modelo.DptoPais;
 import com.ayalait.seguridad.modelo.ShoppingUsuarios;
 
 public interface ShoppingUsuariosDao {
@@ -19,6 +20,8 @@ public interface ShoppingUsuariosDao {
 
 	void eliminarUsuarioPorId(String id);
 	
+	List<ShoppingUsuarios> listadoUsuarios();
+	
 	//DIRECCION
 	
 	void guardarDireccion(DireccionUsuario dire);
@@ -26,5 +29,7 @@ public interface ShoppingUsuariosDao {
 	List<DireccionUsuario> recuperarDreccionUsuarioPorId(String idUsuario);
 	
 	void eliminarDreccionUsuarioPorId(int id);
+	
+	List<DptoPais> listaDptoPais(int pais);
 
 }

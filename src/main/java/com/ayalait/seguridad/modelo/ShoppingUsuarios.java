@@ -20,8 +20,12 @@ public class ShoppingUsuarios implements Serializable {
 	private String document;
 	private String document_type;
 	private String password;
-	private int state;
-	private int idaddress;
+	@Column(insertable = true)
+	private int rol=2;
+	@Column(insertable = true)
+	private int state=6;
+	@Column(insertable = true)
+	private int idaddress=1;
 
 
 	public int getIdaddress() {
@@ -104,6 +108,16 @@ public class ShoppingUsuarios implements Serializable {
 	}
 
 
+
+
+	public int getRol() {
+		return rol;
+	}
+
+
+	public void setRol(int rol) {
+		this.rol = rol;
+	}
 
 
 	public ShoppingUsuarios() {

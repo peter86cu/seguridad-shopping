@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.ayalait.modelo.ConfirmarUsuarioShopping;
 import com.ayalait.seguridad.dao.ShoppingUsuariosDao;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -22,6 +23,8 @@ import org.springframework.stereotype.Service;
 import com.google.gson.Gson;
 
 import com.ayalait.seguridad.modelo.*;
+import com.ayalait.utils.ErrorState;
+import com.ayalait.utils.MessageCodeImpl;
 
 import static com.ayalait.seguridad.utils.Constants.*;
 import static com.ayalait.seguridad.utils.Constants.PREFIJO_TOKEN;
@@ -31,6 +34,9 @@ public class ShoppingServiceImpl implements ShoppingService {
 
 	AuthenticationManager authManager;
 
+	ErrorState error = new ErrorState();
+	java.util.Date fecha = new Date();
+
 	public ShoppingServiceImpl(AuthenticationManager authManager) {
 		this.authManager = authManager;
 	}
@@ -39,25 +45,35 @@ public class ShoppingServiceImpl implements ShoppingService {
 	ShoppingUsuariosDao daoUsuarios;
 
 	@Override
-	public ResponseEntity<String> crearUsuario(String usuario,String token) {
+	public ResponseEntity<String> crearUsuario(String usuario) {
 		try {
-			if (token != null) {
-				// Se procesa el token y se recupera el usuario y los roles.
+			ErrorState error = new ErrorState();
 
-				Claims claims = Jwts.parser().setSigningKey(CLAVE).parseClaimsJws(token.replace(PREFIJO_TOKEN, ""))
-						.getBody();
-				String usuarioT = claims.getSubject();
-				List<String> authorities = (List<String>) claims.get("authorities");
-				
 			ShoppingUsuarios request = new Gson().fromJson(usuario, ShoppingUsuarios.class);
 			String pw1 = new BCryptPasswordEncoder().encode(request.getPassword());
 			request.setPassword(pw1);
-			daoUsuarios.crearUsuarioNuevo(request);
-			return new ResponseEntity<String>(RESULTADO_OK, HttpStatus.OK);
+			request.setState(6);
+			request.setIdaddress(1);
+			if (daoUsuarios.listadoUsuarios().stream()
+					.anyMatch(e -> e.getEmail().equalsIgnoreCase(request.getEmail()))) {
+				error.setCode(70002);
+				return new ResponseEntity<String>(new Gson().toJson(error), HttpStatus.BAD_REQUEST);
+			} else if (daoUsuarios.listadoUsuarios().stream()
+					.anyMatch(e -> e.getDocument().equalsIgnoreCase(request.getDocument())
+							&& e.getDocument_type().equalsIgnoreCase(request.getDocument_type()))) {
+
+				error.setCode(70003);
+				return new ResponseEntity<String>(new Gson().toJson(error), HttpStatus.BAD_REQUEST);
+
 			} else {
-				return new ResponseEntity<String>("Token no enviado.", HttpStatus.BAD_REQUEST);
+				daoUsuarios.crearUsuarioNuevo(request);
+				ConfirmarUsuarioShopping confirmar = new ConfirmarUsuarioShopping();
+				confirmar.setIdusuario(request.getId());
+				confirmar.setToken(getTokenConfirmar(request.getId()));
+				return new ResponseEntity<String>(new Gson().toJson(confirmar), HttpStatus.OK);
 
 			}
+
 		} catch (Exception e) {
 			return new ResponseEntity<String>(e.getCause().getMessage(), HttpStatus.NOT_ACCEPTABLE);
 		}
@@ -66,10 +82,10 @@ public class ShoppingServiceImpl implements ShoppingService {
 	@Override
 	public ResponseEntity<String> buscarUsuario(String user, String pwd) {
 		try {
-			
 			ShoppingUsuarios usuBloqueo = daoUsuarios.recuperarUsuario(user);
 			if (usuBloqueo == null) {
-				return new ResponseEntity<String>("El usuario no existe.", HttpStatus.BAD_REQUEST);
+				error.setCode(70004);
+				return new ResponseEntity<String>(new Gson().toJson(error), HttpStatus.BAD_REQUEST);
 
 			} else {
 				if (usuBloqueo.getState() == 1) {
@@ -80,25 +96,16 @@ public class ShoppingServiceImpl implements ShoppingService {
 						return new ResponseEntity<String>(getToken(autentication), HttpStatus.OK);
 
 					} else {
-						return new ResponseEntity<String>("Usuario o password incorrectos.", HttpStatus.BAD_REQUEST);
+						error.setCode(406);
+						return new ResponseEntity<String>(new Gson().toJson(error), HttpStatus.BAD_REQUEST);
 					}
 				} else {
-					String estado = "";
-
-					if (usuBloqueo.getState() == 2)
-						estado = "INACTIVO";
-					if (usuBloqueo.getState() == 3)
-						estado = "ELIMINADO";
-					if (usuBloqueo.getState() == 4)
-						estado = "BLOQUEADO";
-					if (usuBloqueo.getState() == 5)
-						estado = "NO EXISTE";
-					return new ResponseEntity<String>("El usuario esta " + estado, HttpStatus.BAD_REQUEST);
+					error.setCode(usuBloqueo.getState());
+					return new ResponseEntity<String>(new Gson().toJson(error), HttpStatus.BAD_REQUEST);
 
 				}
 
 			}
-			
 
 		} catch (BadCredentialsException e) {
 			return new ResponseEntity<String>(e.getMessage(), HttpStatus.NOT_ACCEPTABLE);
@@ -113,18 +120,22 @@ public class ShoppingServiceImpl implements ShoppingService {
 
 				Claims claims = Jwts.parser().setSigningKey(CLAVE).parseClaimsJws(token.replace(PREFIJO_TOKEN, ""))
 						.getBody();
-				String usuario = claims.getSubject();
-				List<String> authorities = (List<String>) claims.get("authorities");
-
-				// creamos el objeto con la información del usuario
-				ShoppingUsuarios usuarioresult = daoUsuarios.recuperarUsuario(user);
-				if (usuarioresult != null)
-					return new ResponseEntity<String>(new Gson().toJson(usuarioresult), HttpStatus.OK);
-				else
-					return new ResponseEntity<String>("No existe el usuario en la base de datos.", HttpStatus.OK);
+				Date authorities = claims.getExpiration();
+				if (authorities.before(fecha)) {
+					error.setCode(7000);
+					return new ResponseEntity<String>(new Gson().toJson(error), HttpStatus.BAD_REQUEST);
+				} else {
+					// creamos el objeto con la información del usuario
+					ShoppingUsuarios usuarioresult = daoUsuarios.recuperarUsuario(user);
+					if (usuarioresult != null)
+						return new ResponseEntity<String>(new Gson().toJson(usuarioresult), HttpStatus.OK);
+					else
+						return new ResponseEntity<String>("No existe el usuario en la base de datos.", HttpStatus.OK);
+				}
 
 			} else {
-				return new ResponseEntity<String>("Token no enviado.", HttpStatus.BAD_REQUEST);
+				error.setCode(1001);
+				return new ResponseEntity<String>(new Gson().toJson(error), HttpStatus.BAD_REQUEST);
 
 			}
 		} catch (Exception e) {
@@ -167,7 +178,7 @@ public class ShoppingServiceImpl implements ShoppingService {
 	}
 
 	@Override
-	public ResponseEntity<String> eliminarUsuarioPorId(String id,String token) {
+	public ResponseEntity<String> eliminarUsuarioPorId(String id, String token) {
 		try {
 			daoUsuarios.eliminarUsuarioPorId(id);
 			return new ResponseEntity<String>(com.ayalait.seguridad.utils.Constants.DELETE_USUARIO_OK, HttpStatus.OK);
@@ -190,6 +201,18 @@ public class ShoppingServiceImpl implements ShoppingService {
 		return token;
 	}
 
+	private String getTokenConfirmar(String idUsuario) {
+		// en el body del token se incluye el usuario
+		// y los roles a los que pertenece, además
+		// de la fecha de caducidad y los datos de la firma
+		String token = Jwts.builder().setIssuedAt(new Date()) // fecha creación
+				.setSubject(idUsuario) // usuario
+				.setExpiration(new Date(System.currentTimeMillis() + TIEMPO_VIDA)) // fecha caducidad
+				.signWith(SignatureAlgorithm.HS512, CLAVE)// clave y algoritmo para firma
+				.compact(); // generación del token
+		return token;
+	}
+
 	@Override
 	public ResponseEntity<String> cambiarPassword(String token, String idUsuario, String pass) {
 
@@ -202,15 +225,15 @@ public class ShoppingServiceImpl implements ShoppingService {
 				String usuario = claims.getSubject();
 				List<String> authorities = (List<String>) claims.get("authorities");
 
-			String pw1 = new BCryptPasswordEncoder().encode(pass);
-			daoUsuarios.cambiarPassword(idUsuario, pw1);
+				String pw1 = new BCryptPasswordEncoder().encode(pass);
+				daoUsuarios.cambiarPassword(idUsuario, pw1);
 
-			return new ResponseEntity<String>("Contraseña cambiada correctamente.", HttpStatus.OK);
+				return new ResponseEntity<String>("Contraseña cambiada correctamente.", HttpStatus.OK);
 
-		} else {
-			return new ResponseEntity<String>("Token no enviado.", HttpStatus.BAD_REQUEST);
+			} else {
+				return new ResponseEntity<String>("Token no enviado.", HttpStatus.BAD_REQUEST);
 
-		}
+			}
 		} catch (Exception e) {
 			return new ResponseEntity<String>(e.getCause().getMessage(), HttpStatus.NOT_ACCEPTABLE);
 
@@ -228,21 +251,20 @@ public class ShoppingServiceImpl implements ShoppingService {
 				String usuario = claims.getSubject();
 				List<String> authorities = (List<String>) claims.get("authorities");
 
-			
-			DireccionUsuario request = new Gson().fromJson(dire, DireccionUsuario.class);
-			daoUsuarios.guardarDireccion(request);
-				return new ResponseEntity<String>(RESULTADO_OK,HttpStatus.OK);
+				DireccionUsuario request = new Gson().fromJson(dire, DireccionUsuario.class);
+				daoUsuarios.guardarDireccion(request);
+				return new ResponseEntity<String>(RESULTADO_OK, HttpStatus.OK);
 			} else {
 				return new ResponseEntity<String>("Token no enviado.", HttpStatus.BAD_REQUEST);
 
 			}
 		} catch (Exception e) {
-			return new ResponseEntity<String>(e.getCause().getMessage(),HttpStatus.NOT_ACCEPTABLE);
+			return new ResponseEntity<String>(e.getCause().getMessage(), HttpStatus.NOT_ACCEPTABLE);
 		}
 	}
 
 	@Override
-	public ResponseEntity<String> recuperarDreccionUsuarioPorId(String idUsuario,String token) {
+	public ResponseEntity<String> recuperarDreccionUsuarioPorId(String idUsuario, String token) {
 		try {
 			if (token != null) {
 				// Se procesa el token y se recupera el usuario y los roles.
@@ -272,25 +294,153 @@ public class ShoppingServiceImpl implements ShoppingService {
 	@Override
 	public ResponseEntity<String> eliminarDreccionUsuarioPorId(int id, String token) {
 		try {
-		
-		if (token != null) {
-			// Se procesa el token y se recupera el usuario y los roles.
 
-			Claims claims = Jwts.parser().setSigningKey(CLAVE).parseClaimsJws(token.replace(PREFIJO_TOKEN, ""))
-					.getBody();
-			String usuario = claims.getSubject();
-			List<String> authorities = (List<String>) claims.get("authorities");
-			daoUsuarios.eliminarDreccionUsuarioPorId(id);
-			return new ResponseEntity<String>("Dirección en la base de datos.", HttpStatus.OK);
-			
-		} else {
-			return new ResponseEntity<String>("Token no enviado.", HttpStatus.BAD_REQUEST);
+			if (token != null) {
+
+				// Se procesa el token y se recupera el usuario y los roles.
+
+				Claims claims = Jwts.parser().setSigningKey(CLAVE).parseClaimsJws(token.replace(PREFIJO_TOKEN, ""))
+						.getBody();
+				Date authorities = claims.getExpiration();
+				if (authorities.after(fecha)) {
+					error.setCode(7000);
+					return new ResponseEntity<String>(new Gson().toJson(error), HttpStatus.BAD_REQUEST);
+				} else {
+					daoUsuarios.eliminarDreccionUsuarioPorId(id);
+					return new ResponseEntity<String>("Dirección eliminada correctamente.", HttpStatus.OK);
+				}
+
+			} else {
+				error.setCode(1001);
+				return new ResponseEntity<String>(new Gson().toJson(error), HttpStatus.BAD_REQUEST);
+
+			}
+		} catch (Exception e) {
+			return new ResponseEntity<String>(e.getCause().getMessage(), HttpStatus.NOT_ACCEPTABLE);
 
 		}
-	} catch (Exception e) {
-		return new ResponseEntity<String>(e.getCause().getMessage(), HttpStatus.NOT_ACCEPTABLE);
-
 	}
-}
+
+	@Override
+	public ResponseEntity<String> confirmarRegistroUsuario(String token) {
+		try {
+			java.util.Date fecha = new Date(System.currentTimeMillis() + TIEMPO_VIDA);
+			ErrorState error = new ErrorState();
+
+			if (token != null) {
+				// Se procesa el token y se recupera el usuario y los roles.
+
+				Claims claims = Jwts.parser().setSigningKey(CLAVE).parseClaimsJws(token.replace(PREFIJO_TOKEN, ""))
+						.getBody();
+				String idusuario = claims.getSubject();
+				Date authorities = claims.getExpiration();
+
+				if (authorities.after(fecha)) {
+					error.setCode(7000);
+					return new ResponseEntity<String>(new Gson().toJson(error), HttpStatus.BAD_REQUEST);
+				} else {
+					ShoppingUsuarios usuarioresult = daoUsuarios.recuperarUsuarioPorId(idusuario);
+					if (usuarioresult != null) {
+						usuarioresult.setState(1);
+						daoUsuarios.actualizarUsuario(usuarioresult);
+
+						return new ResponseEntity<String>(MessageCodeImpl.getMensajeServiceUsuarios("70001"),
+								HttpStatus.OK);
+					} else {
+						daoUsuarios.eliminarUsuarioPorId(idusuario);
+						error.setCode(7000);
+						return new ResponseEntity<String>(new Gson().toJson(error), HttpStatus.BAD_REQUEST);
+
+					}
+
+				}
+
+			} else {
+				error.setCode(1001);
+				return new ResponseEntity<String>(new Gson().toJson(error), HttpStatus.BAD_REQUEST);
+
+			}
+		} catch (Exception e) {
+			return new ResponseEntity<String>(e.getCause().getMessage(), HttpStatus.NOT_ACCEPTABLE);
+
+		}
+	}
+
+	@Override
+	public ResponseEntity<String> actualizarEstadoConfirmacionRegistroUser(String iduser, int estado) {
+		try {
+
+			ShoppingUsuarios usuarioresult = daoUsuarios.recuperarUsuario(iduser);
+			if (usuarioresult != null) {
+				usuarioresult.setState(1);
+				daoUsuarios.actualizarUsuario(usuarioresult);
+
+				return new ResponseEntity<String>(new Gson().toJson(usuarioresult), HttpStatus.OK);
+			} else
+				return new ResponseEntity<String>("No existe el usuario en la base de datos.", HttpStatus.OK);
+
+		} catch (Exception e) {
+			return new ResponseEntity<String>(e.getCause().getMessage(), HttpStatus.NOT_ACCEPTABLE);
+
+		}
+	}
+
+	@Override
+	public ResponseEntity<String> obtenrUsuarioPorToken(String token) {
+		try {
+			java.util.Date fecha = new Date(System.currentTimeMillis() + TIEMPO_VIDA);
+			ErrorState error = new ErrorState();
+
+			if (token != null) {
+				// Se procesa el token y se recupera el usuario y los roles.
+
+				Claims claims = Jwts.parser().setSigningKey(CLAVE).parseClaimsJws(token.replace(PREFIJO_TOKEN, ""))
+						.getBody();
+				String idusuario = claims.getSubject();
+				Date authorities = claims.getExpiration();
+
+				if (authorities.after(fecha)) {
+					error.setCode(7000);
+					return new ResponseEntity<String>(new Gson().toJson(error), HttpStatus.BAD_REQUEST);
+				} else {
+					ShoppingUsuarios usuarioresult = daoUsuarios.recuperarUsuarioPorId(idusuario);
+					if (usuarioresult != null) {
+
+						return new ResponseEntity<String>(new Gson().toJson(usuarioresult), HttpStatus.OK);
+					} else {
+						error.setCode(7000);
+						return new ResponseEntity<String>(new Gson().toJson(error), HttpStatus.BAD_REQUEST);
+
+					}
+
+				}
+
+			} else {
+				error.setCode(1001);
+				return new ResponseEntity<String>(new Gson().toJson(error), HttpStatus.BAD_REQUEST);
+
+			}
+		} catch (Exception e) {
+			return new ResponseEntity<String>(e.getCause().getMessage(), HttpStatus.NOT_ACCEPTABLE);
+
+		}
+	}
+
+	@Override
+	public ResponseEntity<String> obtenerListadoDpto(int pais) {
+		try {
+			List<DptoPais> lst= daoUsuarios.listaDptoPais(pais);
+			if(!lst.isEmpty()) {
+				return new ResponseEntity<String>(new Gson().toJson(lst), HttpStatus.OK);
+
+			}
+			error.setCode(7000);
+			return new ResponseEntity<String>(new Gson().toJson(error), HttpStatus.BAD_REQUEST);
+
+		} catch (Exception e) {
+			return new ResponseEntity<String>(e.getCause().getMessage(), HttpStatus.NOT_ACCEPTABLE);
+
+		}
+	}
 
 }

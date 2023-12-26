@@ -6,7 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import com.ayalait.seguridad.modelo.DireccionUsuario;
+import com.ayalait.seguridad.modelo.DptoPais;
 import com.ayalait.seguridad.modelo.ShoppingUsuarios;
+import com.ayalait.seguridad.repositorio.DptoPaisJpaSpring;
 import com.ayalait.seguridad.repositorio.ShoppingUsuariosJpaSpring;
 import com.ayalait.seguridad.repositorio.UsuariosDireccionJpaSpring;
 
@@ -18,6 +20,9 @@ public class ShoppingUsuariosDaoImpl implements ShoppingUsuariosDao {
 	
 	@Autowired
 	UsuariosDireccionJpaSpring daoDire;
+	
+	@Autowired
+	DptoPaisJpaSpring daoDpto;
 	
 	@Override
 	public void crearUsuarioNuevo(ShoppingUsuarios usuario) {
@@ -37,7 +42,7 @@ public class ShoppingUsuariosDaoImpl implements ShoppingUsuariosDao {
 
 	@Override
 	public void actualizarUsuario(ShoppingUsuarios Usuario) {
-		// TODO Auto-generated method stub
+		daoUsuarios.save(Usuario);
 		
 	}
 
@@ -68,6 +73,17 @@ public class ShoppingUsuariosDaoImpl implements ShoppingUsuariosDao {
 	public void eliminarDreccionUsuarioPorId(int id) {
 		daoDire.deleteById(id);
 		
+	}
+
+	@Override
+	public List<ShoppingUsuarios> listadoUsuarios() {		
+		return daoUsuarios.findAll();
+	}
+
+	@Override
+	public List<DptoPais> listaDptoPais(int pais) {
+		
+		return daoDpto.findAll().stream().filter(e ->e.getIdpais()==pais).toList();
 	}
 
 }
