@@ -180,8 +180,25 @@ public class ShoppingServiceImpl implements ShoppingService {
 	@Override
 	public ResponseEntity<String> eliminarUsuarioPorId(String id, String token) {
 		try {
+			if (token != null) {
+
+				// Se procesa el token y se recupera el usuario y los roles.
+
+				Claims claims = Jwts.parser().setSigningKey(CLAVE).parseClaimsJws(token.replace(PREFIJO_TOKEN, ""))
+						.getBody();
+				Date authorities = claims.getExpiration();
+				if (authorities.before(fecha)) {
+					error.setCode(7000);
+					return new ResponseEntity<String>(new Gson().toJson(error), HttpStatus.BAD_REQUEST);
+				} else {
 			daoUsuarios.eliminarUsuarioPorId(id);
 			return new ResponseEntity<String>(com.ayalait.seguridad.utils.Constants.DELETE_USUARIO_OK, HttpStatus.OK);
+				}
+			}else {
+				error.setCode(1001);
+				return new ResponseEntity<String>(new Gson().toJson(error), HttpStatus.BAD_REQUEST);
+			}
+				
 		} catch (Exception e) {
 			return new ResponseEntity<String>(e.getMessage(), HttpStatus.NOT_ACCEPTABLE);
 		}

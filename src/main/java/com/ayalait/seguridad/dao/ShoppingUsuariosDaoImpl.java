@@ -54,7 +54,7 @@ public class ShoppingUsuariosDaoImpl implements ShoppingUsuariosDao {
 
 	@Override
 	public void eliminarUsuarioPorId(String id) {
-		// TODO Auto-generated method stub
+		daoUsuarios.eliminarCuenta(id);
 		
 	}
 
