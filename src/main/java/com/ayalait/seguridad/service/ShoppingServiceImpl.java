@@ -293,10 +293,10 @@ public class ShoppingServiceImpl implements ShoppingService {
 
 				// creamos el objeto con la información del usuario
 				List<DireccionUsuario> direcciones = daoUsuarios.recuperarDreccionUsuarioPorId(idUsuario);
-				if (!direcciones.isEmpty())
+				//if (!direcciones.isEmpty())
 					return new ResponseEntity<String>(new Gson().toJson(direcciones), HttpStatus.OK);
-				else
-					return new ResponseEntity<String>("No existe la dirección en la base de datos.", HttpStatus.OK);
+				//else
+					//return new ResponseEntity<String>("No existe la dirección en la base de datos.", HttpStatus.OK);
 
 			} else {
 				return new ResponseEntity<String>("Token no enviado.", HttpStatus.BAD_REQUEST);
