@@ -28,6 +28,10 @@ public interface ShoppingUsuariosDao {
 	
 	List<DireccionUsuario> recuperarDreccionUsuarioPorId(String idUsuario);
 	
+	DireccionUsuario recuperarDireccionUsuarioCompra(String orderID);
+	
+	DireccionUsuario recuperarDireccionID(int id);
+	
 	void eliminarDreccionUsuarioPorId(int id);
 	
 	List<DptoPais> listaDptoPais(int pais);

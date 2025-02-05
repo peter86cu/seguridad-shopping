@@ -108,7 +108,8 @@ public class ShoppingServiceImpl implements ShoppingService {
 			}
 
 		} catch (BadCredentialsException e) {
-			return new ResponseEntity<String>(e.getMessage(), HttpStatus.NOT_ACCEPTABLE);
+			error.setCode(406);
+			return new ResponseEntity<String>(new Gson().toJson(error), HttpStatus.NOT_ACCEPTABLE);
 		}
 	}
 
@@ -458,6 +459,42 @@ public class ShoppingServiceImpl implements ShoppingService {
 			return new ResponseEntity<String>(e.getCause().getMessage(), HttpStatus.NOT_ACCEPTABLE);
 
 		}
+	}
+
+	@Override
+	public ResponseEntity<String> recuperarDreccionUsuarioPorOrderID(String idOrden) {
+		try {
+			
+
+				DireccionUsuario direccion = daoUsuarios.recuperarDireccionUsuarioCompra(idOrden);
+				//if (!direcciones.isEmpty())
+					return new ResponseEntity<String>(new Gson().toJson(direccion), HttpStatus.OK);
+				//else
+					//return new ResponseEntity<String>("No existe la dirección en la base de datos.", HttpStatus.OK);
+
+			
+		} catch (Exception e) {
+			return new ResponseEntity<String>(e.getCause().getMessage(), HttpStatus.NOT_ACCEPTABLE);
+
+		}
+	}
+
+	@Override
+	public ResponseEntity<String> recuperarDreccionID(int id) {
+		try {
+			
+
+			DireccionUsuario direccion = daoUsuarios.recuperarDireccionID(id);
+			//if (!direcciones.isEmpty())
+				return new ResponseEntity<String>(new Gson().toJson(direccion), HttpStatus.OK);
+			//else
+				//return new ResponseEntity<String>("No existe la dirección en la base de datos.", HttpStatus.OK);
+
+		
+	} catch (Exception e) {
+		return new ResponseEntity<String>(e.getCause().getMessage(), HttpStatus.NOT_ACCEPTABLE);
+
+	}
 	}
 
 }

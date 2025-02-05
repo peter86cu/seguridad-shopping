@@ -100,6 +100,28 @@ public class ShoppingController {
 	}
 	
 	
+	@GetMapping(value = "shopping/direccion/orden-compra", produces = MediaType.APPLICATION_JSON_VALUE)
+	@CrossOrigin(origins = "*", methods = { RequestMethod.GET, RequestMethod.POST })
+	@ResponseStatus(HttpStatus.CREATED)
+	public ResponseEntity<String> obtenerDireccionPorOrdenCompra(@RequestParam("id") String id, HttpServletRequest request)
+			throws Exception {
+
+		return service.recuperarDreccionUsuarioPorOrderID(id);
+
+	}
+	
+	
+	@GetMapping(value = "shopping/direccion/id", produces = MediaType.APPLICATION_JSON_VALUE)
+	@CrossOrigin(origins = "*", methods = { RequestMethod.GET, RequestMethod.POST })
+	@ResponseStatus(HttpStatus.CREATED)
+	public ResponseEntity<String> obtenerDireccionPorID(@RequestParam("id") int id, HttpServletRequest request)
+			throws Exception {
+
+		return service.recuperarDreccionID(id);
+
+	}
+	
+	
 	@DeleteMapping(value = "shopping/direccion/delete", produces = MediaType.APPLICATION_JSON_VALUE)
 	@CrossOrigin(origins = "*", methods = { RequestMethod.GET, RequestMethod.POST })
 	@ResponseStatus(HttpStatus.CREATED)

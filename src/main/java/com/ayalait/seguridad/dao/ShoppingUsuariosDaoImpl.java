@@ -86,4 +86,15 @@ public class ShoppingUsuariosDaoImpl implements ShoppingUsuariosDao {
 		return daoDpto.findAll().stream().filter(e ->e.getIdpais()==pais).toList();
 	}
 
+	@Override
+	public DireccionUsuario recuperarDireccionUsuarioCompra(String orderID) {
+		return daoDire.getDireccionCompraId(orderID);
+	}
+
+	@Override
+	public DireccionUsuario recuperarDireccionID(int id) {
+		
+		return daoDire.findById(id).get();
+	}
+
 }

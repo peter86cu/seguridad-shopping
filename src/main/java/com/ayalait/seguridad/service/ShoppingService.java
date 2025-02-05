@@ -19,6 +19,10 @@ public interface ShoppingService {
 	ResponseEntity<String> guardarDireccion(String dire, String token);
 
 	ResponseEntity<String> recuperarDreccionUsuarioPorId(String idUsuario, String token);
+	
+	ResponseEntity<String> recuperarDreccionUsuarioPorOrderID(String idOrden);
+	
+	ResponseEntity<String> recuperarDreccionID(int id);
 
 	ResponseEntity<String> eliminarDreccionUsuarioPorId(int id, String token);	
 	
